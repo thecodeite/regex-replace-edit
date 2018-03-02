@@ -1,0 +1,84 @@
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+
+hr {
+  xborder-top: 1px solid black;
+}
+
+.App {
+  height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.Editor {
+  background: #e0e0e0;
+  height: 100%;
+}
+
+r {
+  display: inline;
+  background-color: #ffddcc;
+}
+
+/* .Editor textarea {
+  width: calc(100% - 4px - 4px);
+  height: 200px;
+  margin: 4px;
+  padding: 4px;
+} */
+
+main {
+  background: #e0e0e0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 16px 32px 16px 200px 1fr;
+  grid-gap: 8px;
+
+  grid-template-areas:
+    'header header'
+    'h1 h1'
+    'bar bar';
+
+  height: 100%;
+}
+
+main header {
+  grid-area: header;
+}
+
+main h1 {
+  grid-area: h1;
+}
+
+main bar {
+  grid-area: bar;
+}
+
+main textarea {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+}
+
+main fieldset {
+  padding-bottom: 16px;
+  width: 100%;
+  height: 100%;
+}
+
+.Preview {
+  background: white;
+  height: 100%;
+}
+
+button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
