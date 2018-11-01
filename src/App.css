@@ -37,27 +37,52 @@ main {
   background: #e0e0e0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 16px 32px 16px 200px 1fr;
+  grid-template-rows: 16px 32px 20px 200px 1fr;
   grid-gap: 8px;
 
   grid-template-areas:
     'header header'
     'h1 h1'
-    'bar bar';
+    'left-bar right-bar';
 
   height: 100%;
 }
 
+main input[type=number] {
+  width: 48px;
+  text-align: right;
+}
+
+main > * {
+  overflow-y: auto;
+}
+
 main header {
   grid-area: header;
+  overflow-y: hidden;
 }
 
 main h1 {
   grid-area: h1;
+  overflow-y: hidden;
 }
 
-main bar {
-  grid-area: bar;
+main .leftBar {
+  grid-area: left-bar;
+  overflow-y: hidden;
+}
+
+main .leftBar label {
+  margin-right: 16px;
+}
+
+main .rightBar {
+  grid-area: right-bar;
+  overflow-y: hidden;
+}
+
+main .rightBar label {
+  margin-right: 16px;
 }
 
 main textarea {
@@ -69,12 +94,15 @@ main textarea {
 main fieldset {
   padding-bottom: 16px;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 16px);
 }
 
 .Preview {
   background: white;
   height: 100%;
+}
+
+.Preview-inner {
 }
 
 button {

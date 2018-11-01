@@ -22,7 +22,7 @@ import './App.css';
 //   }
 // }
 
-function doReplace(str, regex, replace) {
+function doReplace(str, regex, replace, removeUnmatched, maxMatches) {
   //return str.split(regex);
   console.log('Im splitting!');
   let match;
@@ -30,16 +30,20 @@ function doReplace(str, regex, replace) {
   const result = [];
   let count = 0;
   while (
-    count++ < 5 &&
+    count++ < maxMatches &&
     (match = str.match(regex)) &&
     match !== undefined &&
     match[0] !== undefined
   ) {
-    result.push(str.substr(0, match.index));
+    if (!removeUnmatched) {
+      result.push(str.substr(0, match.index));
+    }
     result.push(format(replace)(match));
     str = str.substr(match.index + match[0].length);
   }
-  result.push(str);
+  if (!removeUnmatched) {
+    result.push(str);
+  }
   return result;
 }
 
@@ -93,6 +97,8 @@ class App extends Component {
       text: fromLocalStorage.text || '',
       multiline: fromLocalStorage.multiline || false,
       ignoreCase: fromLocalStorage.ignoreCase || false,
+      removeUnmatched: fromLocalStorage.removeUnmatched || false,
+      maxMatches: fromLocalStorage.maxMatches || 50,
       name,
       names
     };
@@ -118,20 +124,33 @@ class App extends Component {
       replace,
       text,
       multiline,
-      ignoreCase
+      ignoreCase,
+      removeUnmatched,
+      maxMatches
     } = this.state;
     const result = (() => {
       try {
         const option = `${multiline ? 'm' : ''}${ignoreCase ? 'i' : ''}`;
-        const escaped = doReplace(text, new RegExp(search, option), replace)
-          .map(htmlEscape)
-          .reduce((acc, c, i) => {
+        const escaped = doReplace(
+          text,
+          new RegExp(search, option),
+          replace,
+          removeUnmatched,
+          maxMatches
+        ).map(htmlEscape);
+
+        let highlighted;
+        if (removeUnmatched) {
+          highlighted = escaped;
+        } else {
+          highlighted = escaped.reduce((acc, c, i) => {
             acc.push(c);
             acc.push(i % 2 ? '</r>' : '<r>');
             return acc;
           }, []);
+        }
 
-        return escaped.join('');
+        return highlighted.join('');
       } catch (e) {
         return htmlEscape(e.toString());
       }
@@ -142,7 +161,9 @@ class App extends Component {
         replace,
         text,
         multiline,
-        ignoreCase
+        ignoreCase,
+        removeUnmatched,
+        maxMatches
       };
       data[section] = e.target.value;
       window.localStorage.setItem(prefix + name, JSON.stringify(data));
@@ -154,7 +175,9 @@ class App extends Component {
         replace,
         text,
         multiline,
-        ignoreCase
+        ignoreCase,
+        removeUnmatched,
+        maxMatches
       };
       data[section] = e.target.checked;
       window.localStorage.setItem(prefix + name, JSON.stringify(data));
@@ -177,20 +200,44 @@ class App extends Component {
             ))}
           </header>
           <h1>{name}</h1>
-          <bar>
-            Multiline:{' '}
-            <input
-              type="checkbox"
-              checked={multiline}
-              onChange={onChecked('multiline')}
-            />
-            IgnoreCase:{' '}
-            <input
-              type="checkbox"
-              checked={ignoreCase}
-              onChange={onChecked('ignoreCase')}
-            />
-          </bar>
+          <div className="leftBar">
+            <label>
+              Multiline:{' '}
+              <input
+                type="checkbox"
+                checked={multiline}
+                onChange={onChecked('multiline')}
+              />
+            </label>
+            <label>
+              IgnoreCase:{' '}
+              <input
+                type="checkbox"
+                checked={ignoreCase}
+                onChange={onChecked('ignoreCase')}
+                />
+            </label>
+          </div>
+          <div className="rightBar">
+            <label>
+              Remove Unamtched:{' '}
+              <input
+                type="checkbox"
+                checked={removeUnmatched}
+                onChange={onChecked('removeUnmatched')}
+                />
+            </label>
+            <label>
+              Max matches:{' '}
+              <input
+                type="numeric"
+                width="32"
+                value={maxMatches}
+                onChange={onChecked('maxMatches')}
+                />
+            </label>
+          </div>
+
           <div>
             <fieldset>
               <textarea value={search} onChange={onChange('search')} />
@@ -211,10 +258,12 @@ class App extends Component {
           </div>
           <div>
             <fieldset>
-              <div
-                className="Preview"
-                dangerouslySetInnerHTML={{ __html: result }}
-              />
+              <div className="Preview">
+                <div
+                  className="Preview-inner"
+                  dangerouslySetInnerHTML={{ __html: result }}
+                />
+              </div>
               <legend>After</legend>
             </fieldset>
           </div>
