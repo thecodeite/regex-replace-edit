@@ -37,12 +37,13 @@ main {
   background: #e0e0e0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 16px 32px 20px 200px 1fr;
+  grid-template-rows: 16px 32px 20px 20px 200px 1fr;
   grid-gap: 8px;
 
   grid-template-areas:
     'header header'
     'h1 h1'
+    'tabs tabs'
     'left-bar right-bar';
 
   height: 100%;
@@ -67,6 +68,24 @@ main h1 {
   overflow-y: hidden;
 }
 
+main .tabs {
+  grid-area: tabs;
+}
+
+main .tabs button {
+  padding: 4px 16px 4px;
+  border: 1px solid grey;
+  background-color: lightgray;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  margin: 0 2px;
+}
+
+main .tabs button.active {
+  background-color: white;
+  
+}
+ 
 main .leftBar {
   grid-area: left-bar;
   overflow-y: hidden;

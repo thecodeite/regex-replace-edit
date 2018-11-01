@@ -24,7 +24,7 @@ import './App.css';
 
 function doReplace(str, regex, replace, removeUnmatched, maxMatches) {
   //return str.split(regex);
-  console.log('Im splitting!');
+  //console.log('Im splitting!');
   let match;
 
   const result = [];
@@ -62,10 +62,10 @@ function htmlEscape(text) {
 }
 
 const format = replace => match => {
-  console.log({ replace, match });
+  // console.log({ replace, match });
 
   return replace.replace(/\$([$&]|\d+|[ul]\d+)/g, (_, a) => {
-    console.log('a:', a);
+    // console.log('a:', a);
     if (a === '$') return '$';
     if (a === '&') return match[0];
     if (a.startsWith('u'))
@@ -92,13 +92,10 @@ class App extends Component {
       .map(n => n.substr(prefix.length));
 
     return {
-      search: fromLocalStorage.search || '',
-      replace: fromLocalStorage.replace || '',
       text: fromLocalStorage.text || '',
-      multiline: fromLocalStorage.multiline || false,
-      ignoreCase: fromLocalStorage.ignoreCase || false,
-      removeUnmatched: fromLocalStorage.removeUnmatched || false,
-      maxMatches: fromLocalStorage.maxMatches || 50,
+      tabs: fromLocalStorage.tabs || [{}],
+      currentTab: fromLocalStorage.currentTab || 0,
+      resultTabLocked: fromLocalStorage.resultTabLocked || false,
       name,
       names
     };
@@ -120,69 +117,115 @@ class App extends Component {
     const {
       name,
       names,
-      search,
-      replace,
       text,
-      multiline,
-      ignoreCase,
-      removeUnmatched,
-      maxMatches
+      tabs,
+      currentTab,
+      resultTabLocked
     } = this.state;
-    const result = (() => {
-      try {
-        const option = `${multiline ? 'm' : ''}${ignoreCase ? 'i' : ''}`;
-        const escaped = doReplace(
-          text,
-          new RegExp(search, option),
-          replace,
-          removeUnmatched,
-          maxMatches
-        ).map(htmlEscape);
 
-        let highlighted;
-        if (removeUnmatched) {
-          highlighted = escaped;
-        } else {
-          highlighted = escaped.reduce((acc, c, i) => {
-            acc.push(c);
-            acc.push(i % 2 ? '</r>' : '<r>');
-            return acc;
-          }, []);
+    const {
+      search: search = '',
+      replace: replace = '',
+      multiline: multiline = false,
+      ignoreCase: ignoreCase = false,
+      removeUnmatched: removeUnmatched = false,
+      maxMatches: maxMatches = 50
+    } = tabs[currentTab]
+
+    let result = text
+    const last = (resultTabLocked ? tabs.length-1 : currentTab)
+    for(let i=0; i<=last; i++) {
+      result = (() => { 
+        const {
+          search: search = '',
+          replace: replace = '',
+          multiline: multiline = false,
+          ignoreCase: ignoreCase = false,
+          removeUnmatched: removeUnmatched = false,
+          maxMatches: maxMatches = 50
+        } = tabs[i]
+
+        try {
+          const option = `${multiline ? 'm' : ''}${ignoreCase ? 'i' : ''}`;
+          const replaced = doReplace(
+            result,
+            new RegExp(search, option),
+            replace,
+            removeUnmatched,
+            maxMatches
+          )
+          if (i < last) {
+            return replaced.join('');
+          }
+          const escaped = replaced.map(htmlEscape);
+
+          let highlighted;
+          if (removeUnmatched) {
+            highlighted = escaped;
+          } else {
+            highlighted = escaped.reduce((acc, c, i) => {
+              acc.push(c);
+              acc.push(i % 2 ? '</r>' : '<r>');
+              return acc;
+            }, []);
+          }
+
+          return highlighted.join('');
+        } catch (e) {
+          return htmlEscape(e.toString());
         }
-
-        return highlighted.join('');
-      } catch (e) {
-        return htmlEscape(e.toString());
+      })();
+    }
+    const onChange = (section, writeToTab) => e => {
+      const data = {
+        text,
+        tabs,
+        currentTab,
+        resultTabLocked
+      };
+      if (writeToTab !== undefined) {
+        data.tabs[writeToTab][section] = e.target.value;
+      } else {
+        data[section] = e.target.value;
       }
-    })();
-    const onChange = section => e => {
-      const data = {
-        search,
-        replace,
-        text,
-        multiline,
-        ignoreCase,
-        removeUnmatched,
-        maxMatches
-      };
-      data[section] = e.target.value;
       window.localStorage.setItem(prefix + name, JSON.stringify(data));
       this.setState(this.load());
     };
-    const onChecked = section => e => {
+    const onChecked = (section, writeToTab) => e => {
       const data = {
-        search,
-        replace,
         text,
-        multiline,
-        ignoreCase,
-        removeUnmatched,
-        maxMatches
+        tabs,
+        currentTab,
+        resultTabLocked
       };
-      data[section] = e.target.checked;
+      if (writeToTab !== undefined) {
+        data.tabs[writeToTab][section] = e.target.checked;
+      } else {
+        data[section] = e.target.checked;
+      }
       window.localStorage.setItem(prefix + name, JSON.stringify(data));
       this.setState(this.load());
     };
+
+    const tab = (action) => {
+      const data = {
+        text,
+        tabs,
+        currentTab,
+        resultTabLocked
+      };
+  
+      if (action === 'add') {
+        data.currentTab = tabs.length;
+        tabs.push({})
+      } else {
+        data.currentTab = action
+      }
+  
+      window.localStorage.setItem(prefix + name, JSON.stringify(data));
+      this.setState(this.load());
+    }
+
     return (
       <div className="App">
         <main>
@@ -200,13 +243,18 @@ class App extends Component {
             ))}
           </header>
           <h1>{name}</h1>
+          <div className='tabs'>
+            Tabs: 
+            {tabs.map((_, i) => <button key={i} onClick={() => tab(i)} className={i === currentTab ? 'active' : ''}>{i}</button>)}
+            <button onClick={() => tab('add')}>+</button>
+          </div>
           <div className="leftBar">
             <label>
               Multiline:{' '}
               <input
                 type="checkbox"
                 checked={multiline}
-                onChange={onChecked('multiline')}
+                onChange={onChecked('multiline', currentTab)}
               />
             </label>
             <label>
@@ -214,7 +262,7 @@ class App extends Component {
               <input
                 type="checkbox"
                 checked={ignoreCase}
-                onChange={onChecked('ignoreCase')}
+                onChange={onChecked('ignoreCase', currentTab)}
                 />
             </label>
           </div>
@@ -224,7 +272,7 @@ class App extends Component {
               <input
                 type="checkbox"
                 checked={removeUnmatched}
-                onChange={onChecked('removeUnmatched')}
+                onChange={onChecked('removeUnmatched', currentTab)}
                 />
             </label>
             <label>
@@ -233,20 +281,20 @@ class App extends Component {
                 type="numeric"
                 width="32"
                 value={maxMatches}
-                onChange={onChecked('maxMatches')}
+                onChange={onChecked('maxMatches', currentTab)}
                 />
             </label>
           </div>
 
           <div>
             <fieldset>
-              <textarea value={search} onChange={onChange('search')} />
+              <textarea value={search} onChange={onChange('search', currentTab)} />
               <legend>Search</legend>
             </fieldset>
           </div>
           <div>
             <fieldset>
-              <textarea value={replace} onChange={onChange('replace')} />
+              <textarea value={replace} onChange={onChange('replace', currentTab)} />
               <legend>Replace</legend>
             </fieldset>
           </div>
@@ -258,6 +306,11 @@ class App extends Component {
           </div>
           <div>
             <fieldset>
+              <div className='tabs'>
+                {tabs.map((_, i) => <button key={i} onClick={() => 0} className={i === currentTab ? 'active' : ''} >{i}</button>)}
+                <button onClick={() => onChange('resultTabLocked')({target:{value:!resultTabLocked}})} className={resultTabLocked ? 'active' : ''} >Lock</button>
+                resultTabLocked:{resultTabLocked?'T':'F'}
+              </div>
               <div className="Preview">
                 <div
                   className="Preview-inner"
